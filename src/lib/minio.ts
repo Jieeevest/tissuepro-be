@@ -65,7 +65,7 @@ export async function uploadFile(
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
   fs.writeFileSync(path.join(uploadsDir, fileName), buffer)
 
-  const baseUrl = process.env.BACKEND_URL ?? `http://localhost:${process.env.PORT ?? 5174}`
+  const baseUrl = process.env.BACKEND_URL ?? `http://localhost:${process.env.PORT ?? 5176}`
   return { path: filePath, url: `${baseUrl}/public/uploads/${fileName}` }
 }
 

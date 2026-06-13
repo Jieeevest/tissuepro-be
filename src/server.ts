@@ -1,7 +1,7 @@
 import { buildApp } from './app'
 import { initMinioBucket } from './lib/minio'
 
-const PORT = parseInt(process.env.PORT ?? '3001')
+const PORT = parseInt(process.env.PORT ?? '5176')
 const HOST = process.env.HOST ?? '0.0.0.0'
 
 const app = buildApp()
