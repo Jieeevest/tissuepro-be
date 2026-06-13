@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── App Users (clients / customers) ────────────────────────────────────────
+
+model User {
+  id                String         @id @default(cuid())
+  username          String?        @unique
+  email             String         @unique
+  password          String
+  role              String         @default("user")
+  full_name         String?
+  phone             String?
+  institution       String?
+  city              String?
+  subscription_tier String         @default("starter")
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  tickets           Ticket[]
+  payments          Payment[]
+  ticket_replies    TicketReply[]
+  refresh_tokens    RefreshToken[]
+  cart              Cart?
+  orders            Order[]
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at DateTime
+  created_at DateTime @default(now())
+}
+
+// ─── Support Tickets ─────────────────────────────────────────────────────────
+
+model Ticket {
+  id         String        @id @default(cuid())
+  user_id    String
+  user       User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  subject    String
+  category   String
+  message    String        @db.Text
+  status     String        @default("open")
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  replies    TicketReply[]
+}
+
+model TicketReply {
+  id         String   @id @default(cuid())
+  ticket_id  String
+  ticket     Ticket   @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  user_id    String?
+  user       User?    @relation(fields: [user_id], references: [id])
+  message    String   @db.Text
+  is_admin   Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+// ─── Payments ────────────────────────────────────────────────────────────────
+
+model Payment {
+  id         String   @id @default(cuid())
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  amount     Float
+  tier       String
+  status     String   @default("pending")
+  method     String?
+  reference  String?
+  created_at DateTime @default(now())
+}
+
+// ─── Articles (public blog) ──────────────────────────────────────────────────
+
+model Article {
+  id           String    @id @default(cuid())
+  title        String
+  slug         String    @unique
+  category     String
+  content      String    @db.Text
+  cover_url    String?
+  author       String
+  status       String    @default("draft")
+  published_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+}
+
+// ─── CMS: Inquiry submissions ────────────────────────────────────────────────
+
+model Inquiry {
+  id               String   @id @default(cuid())
+  name             String
+  specialty        String
+  clinic           String
+  city             String
+  whatsapp         String
+  product_interest String
+  message          String   @db.Text
+  status           String   @default("baru")
+  notes            String?  @db.Text
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+}
+
+// ─── CMS: Products ───────────────────────────────────────────────────────────
+
+model Product {
+  id            String      @id @default(cuid())
+  name          String
+  series        String
+  nanoparticles String
+  type          String
+  description   String      @db.Text
+  status        String      @default("aktif")
+  image_url     String?
+  price         Decimal?    @db.Decimal(12, 2)
+  order         Int         @default(0)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+
+  cart_items    CartItem[]
+  order_items   OrderItem[]
+}
+
+// ─── CMS: Application Areas ──────────────────────────────────────────────────
+
+model ApplicationArea {
+  id          String   @id @default(cuid())
+  name        String
+  specialty   String
+  description String   @db.Text
+  icon        String
+  order       Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+// ─── CMS: Case Studies ───────────────────────────────────────────────────────
+
+model CaseStudy {
+  id                  String            @id @default(cuid())
+  specialty           String
+  title               String
+  patient_description String            @db.Text
+  disclaimer          String            @db.Text
+  is_published        Boolean           @default(false)
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+
+  images              CaseStudyImage[]
+  metrics             CaseStudyMetric[]
+}
+
+model CaseStudyImage {
+  id            String    @id @default(cuid())
+  case_study_id String
+  case_study    CaseStudy @relation(fields: [case_study_id], references: [id], onDelete: Cascade)
+  src           String
+  caption       String
+  order         Int       @default(0)
+}
+
+model CaseStudyMetric {
+  id            String    @id @default(cuid())
+  case_study_id String
+  case_study    CaseStudy @relation(fields: [case_study_id], references: [id], onDelete: Cascade)
+  label         String
+  value         String
+  order         Int       @default(0)
+}
+
+// ─── CMS: Pipeline ───────────────────────────────────────────────────────────
+
+model PipelineItem {
+  id           String   @id @default(cuid())
+  product_name String
+  platform     String
+  stage        String
+  order        Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+// ─── CMS: Documents ──────────────────────────────────────────────────────────
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  access      String   @default("publik")
+  file_url    String
+  uploaded_at DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+// ─── CMS Admin Users (staff) ─────────────────────────────────────────────────
+
+model AdminUser {
+  id         String              @id @default(cuid())
+  name       String
+  email      String              @unique
+  password   String
+  role       String              @default("editor")
+  created_at DateTime            @default(now())
+  updated_at DateTime            @updatedAt
+
+  refresh_tokens AdminRefreshToken[]
+}
+
+model AdminRefreshToken {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  admin_id   String
+  admin      AdminUser @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+  expires_at DateTime
+  created_at DateTime  @default(now())
+}
+
+// ─── CMS: Page & General Settings ────────────────────────────────────────────
+
+model PageSetting {
+  id         String   @id @default(cuid())
+  page       String
+  key        String
+  value      String   @db.Text
+  updated_at DateTime @updatedAt
+
+  @@unique([page, key])
+}
+
+model GeneralSetting {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  value      String   @db.Text
+  updated_at DateTime @updatedAt
+}
+
+// ─── E-commerce: Cart ────────────────────────────────────────────────────────
+
+model Cart {
+  id         String     @id @default(cuid())
+  user_id    String     @unique
+  user       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  items      CartItem[]
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+}
+
+model CartItem {
+  id         String   @id @default(cuid())
+  cart_id    String
+  cart       Cart     @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  product_id String
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([cart_id, product_id])
+}
+
+// ─── E-commerce: Orders ──────────────────────────────────────────────────────
+
+model Order {
+  id               String        @id @default(cuid())
+  order_number     String        @unique
+  user_id          String
+  user             User          @relation(fields: [user_id], references: [id])
+  items            OrderItem[]
+  status           String        @default("pending")
+  total_amount     Decimal       @db.Decimal(12, 2)
+  shipping_name    String
+  shipping_phone   String
+  shipping_address String
+  shipping_city    String
+  shipping_province String
+  shipping_postal  String
+  notes            String?       @db.Text
+  order_payment    OrderPayment?
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @updatedAt
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  order_id     String
+  order        Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product_id   String
+  product      Product  @relation(fields: [product_id], references: [id])
+  product_name String
+  price        Decimal  @db.Decimal(12, 2)
+  quantity     Int
+}
+
+// ─── E-commerce: Payments (Midtrans) ─────────────────────────────────────────
+
+model OrderPayment {
+  id                 String   @id @default(cuid())
+  order_id           String   @unique
+  order              Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  midtrans_order_id  String   @unique
+  snap_token         String?
+  status             String   @default("pending")
+  amount             Decimal  @db.Decimal(12, 2)
+  payment_method     String?
+  midtrans_response  Json?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+}
